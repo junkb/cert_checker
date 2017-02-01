@@ -95,9 +95,6 @@ function check_certificate () {
 	echo "${verify_output_dev}" | grep -iF "${certificate_file_basename}" | awk '$2 == "OK" { print $2}' | grep -F 'OK' > /dev/null 2>&1
 	verify_result_dev="${?}"
 
-    echo "prod: ${verify_result_prod}"
-    echo "dev : ${verify_result_dev}"
-
 	if (( "${verify_result_prod}" && "${verify_result_dev}" ))
 	then
 		echo "skipping [issuer: ${certificate_issuer}]"
