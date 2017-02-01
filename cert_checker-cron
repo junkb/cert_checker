@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# this utility is a wrapper around cert_checker, to accomodate it
+# being run from cron.  it sends uninteresting output to /dev/null, so
+# mail is only generated when notable events occur
+
+output=$(cert_checker 2>&1)
+exit_status="${?}"
+exit_status='1'
+
+if (( "${exit_status}" ))
+	then
+	echo "${output}"
+fi
+
+exit 0
