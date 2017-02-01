@@ -1,0 +1,4 @@
+# hostname						service_name
+foo.example.com    		apache
+bar.example.com 			apache
+im.example.com        prosody
