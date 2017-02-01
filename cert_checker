@@ -1,0 +1,281 @@
+#!/bin/bash
+
+# this utility processes certificates for hostnames listed in the hosts file,
+# and, if necessary, requests new certificates
+
+# the following filename convention is expected: <hostname>-<type>.pem,
+# where <hostname> is the fully qualified hostname used in the subject/cn
+# value of the certificate
+
+# example:
+# www.example.com-key.pem
+# www.example.com-csr.pem
+# www.example.com-cert.pem
+
+program_name=$(basename "${0}")
+config_dir="${HOME}/.config/${program_name}"
+config_file="${config_dir}/${program_name}.conf"
+
+source "${config_file}"
+
+# read in the contents of the hosts file [with comments removed]
+hosts=$(egrep -v '(^[[:space:]]*#|^[[:space:]]*$)' "${hosts_file}")
+
+hostnames=($(echo "${hosts}" | awk '{ print $1 }' | sort -u))
+
+send_alert='0'
+unset services_to_reload
+declare -A services_to_reload
+
+## check for read access to account key file
+if [[ ! -r "${letsencrypt_account_key_file}" ]]
+then
+	echo "${letsencrypt_account_key_file} is not readable [or does not exist]"
+	echo 'exiting'
+	exit 1
+fi
+
+# check certificate for basic structural validity
+function validate_certificate () {
+	certificate_file="${1}"
+	echo "validating ${certificate_file}..."
+	openssl x509 -noout -in "${certificate_file}" > /dev/null 2>&1
+	cert_validate_result="${?}"
+	if (( "${cert_validate_result}" ))
+	then
+		echo "failed - does not appear to be a valid certificate"
+		return 1
+	fi
+	
+	# get the subject field from the certificate
+	certificate_subject=$(openssl x509 -in "${certificate_file}" -noout -subject -nameopt rfc2253)
+	certificate_subject=$(echo "${certificate_subject}" | awk -F 'subject= ' '{ print $2 }' | tr '[[:upper:]]' '[[:lower:]]')
+	
+	echo "success [subject: ${certificate_subject}]"
+}
+
+# process/validate/verify the specified certificate and request renewal if necessary
+function check_certificate () {
+
+	# initialize variables
+	unset cert_validate_result
+	unset certificate_subject
+	unset certificate_end_date
+	unset csr_file
+	unset csr_verify_result
+	unset csr_subject
+
+	# check existing certificate validity
+	validate_certificate "${certificate_file}"
+	cert_validate_result="${?}"
+	if (( "${cert_validate_result}" ))
+	then
+		echo 'skipping'
+		return 1
+	fi
+
+	# check to see if the certificate was issued by lets encrypt.
+	# older versions of ssl don't work right, so the result code can't
+	# be used and the output must be parsed
+	echo 'verifying issuer...'
+
+	# get issuer
+	certificate_issuer=$(openssl x509 -noout -issuer -in "${certificate_file}" -nameopt rfc2253)
+	certificate_issuer=$(echo "${certificate_issuer}" | awk -F 'issuer= ' '{ print $2 }' | tr '[[:upper:]]' '[[:lower:]]')
+
+	certificate_file_basename=$(basename "${certificate_file}")
+
+	# verify the certificate against the production lets encrypt certificates
+	verify_output_prod=$(openssl verify -CApath "${verification_bundle_dir_prod}" "${certificate_file}")
+	echo "${verify_output_prod}" | grep -iF "${certificate_file_basename}" | awk '$2 == "OK" { print $2}' | grep -F 'OK' > /dev/null 2>&1
+	verify_result_prod="${?}"
+
+	# verify the certificate against the development [e.g. "staging"] lets encrypt certificates
+	verify_output_dev=$(openssl verify -CApath "${verification_bundle_dir_dev}" "${certificate_file}")
+	echo "${verify_output_dev}" | grep -iF "${certificate_file_basename}" | awk '$2 == "OK" { print $2}' | grep -F 'OK' > /dev/null 2>&1
+	verify_result_dev="${?}"
+
+    echo "prod: ${verify_result_prod}"
+    echo "dev : ${verify_result_dev}"
+
+	if (( "${verify_result_prod}" && "${verify_result_dev}" ))
+	then
+		echo "skipping [issuer: ${certificate_issuer}]"
+		return 0
+	fi
+
+	echo "success [issuer: ${certificate_issuer}]"
+
+	# check for write access to certificate file
+	if [[ ! -w "${certificate_file}" ]]
+	then
+		echo "${certificate_file} is not writable"
+		echo 'skipping'
+		return 1
+	fi
+
+	# get the expiration date field from the certificate
+	certificate_end_date=$(openssl x509 -in "${certificate_file}" -noout -enddate)
+	certificate_end_date=$(echo "${certificate_end_date}" | awk -F '=' '{ print $2 }')
+	certificate_end_date=$(date "--date=${certificate_end_date}" '+%Y.%m.%d %H.%M %Z' | tr '[[:upper:]]' '[[:lower:]]')
+
+	# check to see if the certificate expiration date is within the specified window
+	echo ''
+	echo 'checking certficate expiration date...'
+	expiration_window_seconds=$((${expiration_window_days} * 86400))
+	openssl x509 -in "${certificate_file}" -noout -checkend "${expiration_window_seconds}"
+	certificate_expiring="${?}"
+
+	if (( "${certificate_expiring}" ))
+	then
+		echo "certificate due for renewal [expires ${certificate_end_date}] - renewing..."
+
+		csr_file="${local_pki_dir}/${hostname}-csr.pem"
+
+		# check for read access to csr file
+		if [[ ! -r "${csr_file}" ]]
+		then
+			echo "${csr_file} is not readable [or does not exist]"
+			echo 'skipping'
+			return 1
+		fi
+
+		# check csr validity
+		echo ''
+		echo "validating csr [${csr_file}]..."
+		openssl req -noout -in "${csr_file}" > /dev/null 2>&1
+		csr_verify_result="${?}"
+
+		if (( "${csr_verify_result}" ))
+		then
+			echo "${csr_file} does not appear to be a valid certificate signing request"
+			echo 'skipping'
+			return 1
+		fi
+
+		# get the subject field from the csr
+		csr_subject=$(openssl req -batch -noout -subject -nameopt rfc2253 -in "${csr_file}")
+		csr_subject=$(echo "${csr_subject}" | awk -F 'subject=' '{ print $2 }' | tr '[[:upper:]]' '[[:lower:]]')
+
+		echo "success [subject: ${csr_subject}]"
+
+		# make a backup of the existing certificate
+		echo ''
+		echo 'backing up existing certificate...'
+
+		date_time=$(date +%Y.%m.%d-%H.%M.%S)
+		certificate_backup_dir="${local_pki_backup_dir}/${date_time}"
+
+		#mkdir --verbose --parents "${certificate_backup_dir}"
+		#cp --verbose "${certificate_file}" "${certificate_backup_dir}"
+
+		# perform the actual certificate request
+		echo ''
+		echo 'requesting new certificate...'
+		#acme_tiny-reqcert \
+		#	--ca "${certificate_authority}" \
+		#	--account-key "${letsencrypt_account_key_file}" \
+		#	--csr "${csr_file}" \
+		#	--acme-dir "${acme_dir}" \
+		#	> "${certificate_file}"
+
+		# validate new certificate
+		echo ''
+		validate_certificate "${certificate_file}"
+		cert_validate_result="${?}"
+		if (( "${cert_validate_result}" ))
+		then
+			echo 'something may have gone wrong with the certificate request process'
+			return 1
+		fi
+
+		# compare the private key with the certificate to ensure they match
+		echo ''
+		private_key_file="${local_pki_dir}/${hostname}-key.pem"
+		echo "verifying certificate [${certificate_file}] matches private key [${private_key_file}]..."
+
+		# get public key from private key
+		private_key_public_key=$(openssl pkey -pubout -in "${private_key_file}")
+
+		# get public key from certificate
+		certificate_public_key=$(openssl x509 -noout -pubkey -in "${certificate_file}")
+
+		# compare the private key public key and public key public key
+		if [[ "${private_key_public_key}" != "${certificate_public_key}" ]]
+		then
+			echo "certificate [${certificate_file}] does not match private key [${private_key_file}]"
+			echo 'something may have gone wrong with the certificate request process'
+			return 1
+		fi
+
+		echo 'success'
+
+		# mark the associated services for reload
+		# get the list of services which use the certificate from the hosts file
+		services=($(echo "$hosts" | grep -iF "${hostname}" | awk '{ print $2 }'))
+
+		# add services to array if not already present
+		for service in "${services[@]}"
+		do
+			if [[ ! "${services_to_reload[$service]}" ]]
+			then
+				echo "marking ${service} for reload..."
+				services_to_reload["${service}"]+='yes'
+			fi
+		done
+
+		echo "array: ${services_to_reload[@]}"
+
+		# clean up ownership/permissions
+		echo ''
+		echo 'cleaning up ownership/permissions...'
+		chown --verbose "${file_owner}.${file_group}" "${certificate_file}"	
+		chmod --verbose 0644 "${certificate_file}"
+
+		return 1
+	fi
+
+	echo "certificate expiration is more than ${expiration_window_days} days away [expires ${certificate_end_date}] - skipping"
+	return 0
+}
+
+for hostname in "${hostnames[@]}"
+	do
+	echo ''
+	echo "=== processing ${hostname}:"
+
+	certificate_file="${local_pki_dir}/${hostname}-cert.pem"
+	check_certificate "${certificate_file}"
+	check_certificate_result="${?}"
+
+	# if there was a non zero exit status for any reason, set
+	# a flag to send an alert
+	if (( "${check_certificate_result}" ))
+	then
+		send_alert='1'
+	fi
+done
+
+# reload the service[s]
+if [[ "${!services_to_reload[@]}" ]]
+then
+	echo ''
+	echo 'reloading services...'
+
+	# read in the contents of the services file
+	services=$(egrep -v '(^[[:space:]]*#|^[[:space:]]*$)' "${services_file}")
+
+	for service in "${!services_to_reload[@]}"
+	do
+		# get service reload command from the hosts file
+		service_reload_command=$(echo "${services}" | grep -iF "${service}" | awk '{print substr($0, index($0, $2))}')
+		echo "${service} - running reload command [${service_reload_command}]..."
+		"${service_reload_command}"
+		echo ''
+	done
+fi
+
+if (( "${send_alert}" ))
+then
+    exit 1
+fi
