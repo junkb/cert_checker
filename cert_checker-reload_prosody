@@ -1,0 +1,37 @@
+#!/bin/bash
+
+service_name='prosody'
+service_pki_dir='/etc/prosody/pki'
+
+config_dir="${HOME}/.config"
+cert_checker_config_dir="${config_dir}/cert_checker"
+cert_checker_config_file="${cert_checker_config_dir}/cert_checker.conf"
+cert_checker_hosts_file="${cert_checker_config_dir}/cert_checker.hosts"
+
+source "${cert_checker_config_file}"
+
+# get list of hostnames used with the service
+hostnames=($(grep -F "${service_name}" "${cert_checker_hosts_file}" | awk '{ print $1 }'))
+
+for hostname in "${hostnames[@]}"
+do
+	echo "creating certificate chain file for: ${hostname}"
+
+	# prosody requires all certificates in a single file [e.g. a certificat chain file].
+	# the server cert must be first [topmost] in the file, followed by each superior
+	# certificate required to form the necessary chain to the root certificate
+	server_certificate_file="${local_pki_dir}/${hostname}-cert.pem"
+	certificate_chain_file="${service_pki_dir}/${hostname}-cert-chain.pem"
+
+	cat \
+		"${server_certificate_file}" \
+		"${intermediate_certificate_file}" \
+		> "${certificate_chain_file}"
+
+done
+
+# restart the service
+echo "reloading ${service_name}..."
+sudo service ${service_name} reload
+
+exit 0
