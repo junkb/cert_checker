@@ -265,7 +265,7 @@ then
 		# get service reload command from the hosts file
 		service_reload_command=$(echo "${services}" | grep -iF "${service}" | awk '{print substr($0, index($0, $2))}')
 		echo "${service} - running reload command [${service_reload_command}]..."
-		"${service_reload_command}"
+		${service_reload_command}
 		echo ''
 	done
 fi
