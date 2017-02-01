@@ -1,0 +1,390 @@
+# openssl configuration file
+# this is mostly being used for generation of certificate requests
+
+# misc variables/defaults
+
+## environment
+### this definition stops the following lines choking if home isn't defined
+HOME					= .
+RANDFILE				= ${ENV::HOME}/.rnd
+config_dir				= /etc/ssl
+pki_dir					= /etc/pki
+
+## organization details
+org_name_long			= 'example organization'
+org_name_short			= example_org
+org_city				= city
+org_state				= xx
+org_zip					= 00000
+org_country				= xx
+
+## network details
+domain_name				= example.org
+cn						= ${domain_name}
+oun						= 'web servers'
+san						= DNS:${domain_name}
+
+## file names
+root_ca_filename_prefix	= ${org_name_short}_root_ca
+root_ca_key_filename	= ${root_ca_filename_prefix}-key.pem
+root_ca_cert_filename	= ${root_ca_filename_prefix}-cert.pem
+root_ca_crl_filename	= ${root_ca_filename_prefix}-crl.pem
+
+## misc details
+cert_comment			= certificate issued by ${org_name_long} certificate authority
+pki_server_hostname		= pki.${domain_name} 
+pki_base_url			= https://${pki_server_hostname}
+crl_url_default			= ${pki_base_url}/${root_ca_crl_filename}
+revocation_url_default	= ${pki_base_url}/revocation.php
+renewal_url_default		= ${pki_base_url}/renewal.php
+policy_url_default		= ${pki_base_url}/policy.php
+
+## key generation defaults
+default_md				= sha512		# default message digest [signature algorithm] to use
+default_bits			= 4096			# default size for generated keys
+default_keyfile			= ${ENV::cn}-key.pem
+encrypt_key				= no
+
+## distinguished name structure and prompt value defaults
+email_default			= pki_admin@${domain_name}
+organization_default	= ${org_name_long}
+city_default			= ${org_city}
+state_default			= ${org_state}
+country_default			= ${org_country}
+
+## other
+dn_section				= 'req_dn-no_prompt'
+openssl_prompt			= 'no'
+
+# extra object identifier info
+#oid_file				= ${ENV::HOME}/.oid
+oid_section				= new_oids
+
+# to use this configuration file with the "-extfile" option of the
+# "openssl x509" utility, name here the section containing the
+# X.509v3 extensions to use:
+# extensions			= 
+# [alternatively, use a configuration file that has only
+# x.509v3 extensions in its main [= default] section]
+
+####################################################################
+[ new_oids ]
+# we can add new oids in here for use by 'ca' and 'req'
+# add a simple oid like this:
+# testoid1				= 1.2.3.4
+# or use config file substitution like this:
+# testoid2				= ${testoid1}.5.6
+
+# policies used by the tsa examples
+tsa_policy1 = 1.2.3.4.1
+tsa_policy2 = 1.2.3.4.5.6
+tsa_policy3 = 1.2.3.4.5.7
+
+####################################################################
+[ ca ]
+default_ca		= ca_default			# section name to use for defaults
+
+####################################################################
+[ ca_default ]
+
+# general settings
+certs				= ${pki_dir}/certs			# where the issued certs are kept
+new_certs_dir		= ${config_dir}/new_certs	# default place for new certs
+crl_dir				= ${pki_dir}/crl			# where the issued crl are kept
+
+database			= ${config_dir}/index			# database index file
+serial				= ${config_dir}/serial			# the current serial number
+RANDFILE			= ${config_dir}/private/.rand	# private random number file
+
+# signing settings
+private_key			= ${pki_dir}/ca/${root_ca_key_filename}		# the root private key
+certificate			= ${pki_dir}/ca/${root_ca_cert_filename}	# the root certificate
+default_days		= 1461										# how long to certify for
+x509_extensions		= cert_exts-default							# section containing default extensions to add to certs when signing
+
+# comment out the following two lines for the 'traditional' [and highly broken] format
+name_opt			= ca_default				# subject name options
+cert_opt			= ca_default				# certificate field options
+
+#unique_subject		= no						# set to 'no' to allow creation of several certificates with same subject
+preserve			= no						# keep passed dn ordering
+
+# extension copying option.  use with caution
+copy_extensions		= copy
+
+# specify the named policy section to use
+#policy				= policy_match
+policy				= policy_anything
+
+# crl settings
+crlnumber			= ${crl_dir}/crlnumber					# the current crl number
+crl					= ${crl_dir}/${root_ca_crl_filename}	# the current crl
+
+# extensions to add to a crl.  note: netscape communicator chokes on v2 crls
+# so this is commented out by default to leave a v1 crl.
+# crlnumber must also be commented out to leave a v1 crl
+# crl_extensions	= crl_exts-default
+default_crl_days	= 365						# how long before next crl
+
+####################################################################
+# policies
+## match
+[ policy_match ]
+commonName				= supplied
+organizationalUnitName	= supplied
+emailAddress			= supplied
+organizationName		= match
+localityName			= match
+stateOrProvinceName		= match
+countryName				= match
+
+## supplied
+[ policy_supplied ]
+commonName				= supplied
+organizationalUnitName	= supplied
+emailAddress			= supplied
+organizationName		= supplied
+localityName			= supplied
+stateOrProvinceName		= supplied
+countryName				= supplied
+
+## anything
+[ policy_anything ]
+# at this point in time, you must list all acceptable 'object' types
+commonName				= supplied
+organizationalUnitName	= optional
+emailAddress			= optional
+organizationName		= optional
+localityName			= optional
+stateOrProvinceName		= optional
+countryName				= optional
+
+###########################################################
+[ cert_exts-default ]
+# extensions added when the ca signs certificate requests.  used for typical
+# certificates [e.g. server/service certificates]
+
+# this goes against pkix guidelines but some cas do it and some software
+# requires this to avoid interpreting an end user certificate as a ca
+basicConstraints				= CA:FALSE
+
+subjectKeyIdentifier			= hash													# pkix recommendations.  harmless if included in all certificates
+# keyUsage						= nonRepudiation, digitalSignature, keyEncipherment		# this is typical in keyusage for a client certificate
+authorityKeyIdentifier			= keyid,issuer
+# subjectAltName				= email:copy											# this stuff is for subjectaltname and issueraltname import the email address
+# subjectAltName				= email:move											# an alternative to produce certificates that aren't deprecated according to pkix.
+# issuerAltName					= issuer:copy											# copy subject details
+crlDistributionPoints           = URI:${crl_url_default}								# where to download the latest certificate revocation list
+
+# here are some examples of the usage of nscerttype. if it is omitted
+# the certificate can be used for anything *except* object signing
+# nsCertType					= server						# this is ok for an ssl server
+# nsCertType					= objsign						# for an object signing certificate this would be used
+# nsCertType					= client, email					# for normal client use this is typical
+# nsCertType					= client, email, objsign		# and for everything including object signing
+
+nsComment						= ${cert_comment}				# this will be displayed in netscape's comment listbox
+nsBaseUrl                       = ${pki_base_url}				# base url for all other url addresses if not supplied
+nsCaRevocationUrl               = ${crl_url_default}			# where to download the latest certificate revocation list
+nsRevocationUrl                 = ${revocation_url_default}		# where to revoke certificates
+nsRenewalUrl                    = ${renewal_url_default}		# where to renew certificates
+nsCaPolicyUrl                   = ${policy_url_default}			# ca policy
+
+####################################################################
+[ cert_exts-proxy ]
+# these extensions should be added when creating a proxy certificate
+# see comments in preceding section[s] for details
+
+basicConstraints				= CA:FALSE
+
+subjectKeyIdentifier			= hash
+authorityKeyIdentifier			= keyid,issuer
+crlDistributionPoints			= URI:${crl_url_default}
+
+nsComment						= ${cert_comment}
+nsBaseUrl                       = ${pki_base_url}
+nsCaRevocationUrl               = ${crl_url_default}
+nsRevocationUrl                 = ${revocation_url_default}
+nsRenewalUrl                    = ${renewal_url_default}
+nsCaPolicyUrl                   = ${policy_url_default}
+
+# this really needs to be in place for it to be a proxy certificate.
+proxyCertInfo					= proxyCertInfo=critical,language:id-ppl-anyLanguage,pathlen:3,policy:foo
+
+####################################################################
+[ crl_exts-default ]
+
+# crl extensions
+# only issueraltname and authoritykeyidentifier make any sense in a crl
+
+# issuerAltName					= issuer:copy
+authorityKeyIdentifier			= keyid:always
+
+####################################################################
+[ req ]
+distinguished_name		= ${ENV::dn_section}
+prompt					= ${ENV::openssl_prompt}		# if prompt is set to no, then distinguished_name must be changed to no_prompt
+#attributes				= req_attrs
+req_extensions			= req_exts-default				# default section for extensions to add to a certificate request
+x509_extensions			= req_exts-self_signed_server	# default section for extensions to add to self signed certs
+# passwords for private keys. if not present, they will be prompted for
+# input_password		= secret
+# output_password		= secret
+
+# this sets a mask for permitted string types. there are several options
+# default	: printablestring, bmpstring, t61string		[no utf8strings]
+# pkix		: printableString, bmpstring				[no t61string or utf8strings]
+# nombstr	: printablestring, t61string				[no bmpstrings or utf8strings]
+# utf8only	: utf8strings								[no printablestring, bmpstring, or t61string]
+# MASK		: XXXX a literal mask value
+#
+# warning: current versions of netscape crash on bmpstrings
+# or utf8strings, so use this option with caution
+string_mask				= utf8only
+
+######################################################
+[ req_dn_short-no_prompt ]
+# distinguished name values used when prompt = no
+commonName						= ${ENV::cn}
+
+######################################################
+[ req_dn-no_prompt ]
+# distinguished name values used when prompt = no
+commonName						= ${ENV::cn}
+organizationalUnitName			= ${ENV::oun}
+emailAddress					= ${email_default}
+organizationName				= ${organization_default}
+localityName					= ${city_default}
+stateOrProvinceName				= ${state_default}
+countryName						= ${country_default}
+
+#######################################################
+[ req_dn-prompt ]
+# distinguished name prompts/values used when prompt = yes
+commonName						= common name [hostname]
+commonName_default				= ${ENV::cn}
+commonName_max					= 64
+organizationalUnitName			= organizational unit name [eg, host/service category]
+#organizationalUnitName_default	= ${ENV::oun}
+emailAddress					= email address
+emailAddress_default			= ${email_default}
+emailAddress_max				= 64
+0.organizationName				= organization name [eg, company]
+0.organizationName_default		= ${organization_default}
+#1.organizationName				= second organization name [eg, company name]
+#1.organizationName_default		= example corp pty ltd
+localityName					= locality name [eg, city]
+localityName_default			= ${city_default}
+stateOrProvinceName				= state or province name [full name]
+stateOrProvinceName_default		= ${state_default}
+countryName						= country name [2 letter code]
+countryName_default				= ${country_default}
+countryName_min					= 2
+countryName_max					= 2
+
+# SET-ex3						= set extension number 3
+
+##########################################################################
+[ req_attrs ]
+# additional attributes to include in a certificate request [if enabled]
+#challengePassword				= a challenge password
+#challengePassword_min			= 4
+#challengePassword_max			= 20
+
+#unstructuredName				= an optional company name
+
+####################################################################
+[ req_exts-default ]
+# extensions to add to a typical certificate request for a single hostname
+basicConstraints				= CA:FALSE
+keyUsage						= nonRepudiation, digitalSignature, keyEncipherment
+
+###############################################################
+[ req_exts-san ]
+# this section is used when openssl req is called with -reqexts v3_req_san.
+# used to include subjectaltname attributes in certificate requests
+basicConstraints				= CA:FALSE
+keyUsage						= nonRepudiation, digitalSignature, keyEncipherment
+
+# get the value to use for subjectaltname from the environment variable named 'san'
+subjectAltName					= ${ENV::san}
+
+####################################################################
+[ req_exts-self_signed_ca ]
+# extensions for a typical ca
+
+# pkix recommendation
+subjectKeyIdentifier			= hash
+authorityKeyIdentifier			= keyid:always,issuer
+
+# this is what pkix recommends but some broken software chokes on critical
+# extensions
+#basicConstraints				= critical,CA:true
+# so we do this instead
+basicConstraints				= CA:true
+
+# key usage: this is typical for a ca certificate. however since it will
+# prevent it being used as an test self-signed certificate it is best
+# left out by default
+keyUsage						= cRLSign, keyCertSign
+
+# some might want this also
+# nsCertType					= sslCA, emailCA
+
+# include email address in subject alt name: another pkix recommendation
+# subjectAltName				= email:copy
+# copy issuer details
+# issuerAltName					= issuer:copy
+
+# der hex encoding of an extension: beware experts only
+# obj							= DER:02:03
+# where 'obj' is a standard or added object
+
+# you can even override a supported extension:
+# basicConstraints				= critical, DER:30:03:01:01:FF
+
+####################################################################
+[ req_exts-self_signed_server ]
+
+subjectKeyIdentifier			= hash
+authorityKeyIdentifier			= keyid:always,issuer
+basicConstraints				= CA:false
+
+####################################################################
+[ tsa ]
+
+default_tsa = tsa_default		# the default tsa section
+
+####################################################################
+[ tsa_default ]
+
+# these are used by the tsa reply generation only
+tsa_dir							= ${config_dir}/tsa						# tsa root directory
+serial							= ${tsa_dir}/tsaserial					# the current serial number [mandatory]
+crypto_device					= builtin								# openssl engine to use for signing
+signer_cert						= ${tsa_dir}/tsacert.pem				# the tsa signing certificate
+																		# [optional]
+certs							= ${tsa_dir}/cacert.pem					# certificate chain to include in reply
+																		# [optional]
+signer_key						= ${tsa_dir}/private/tsakey.pem			# the tsa private key [optional]
+
+default_policy					= tsa_policy1							# policy if request did not specify it
+																		# [optional]
+other_policies					= tsa_policy2, tsa_policy3				# acceptable policies [optional]
+#digests						= md5, sha1								# acceptable message digests [mandatory]
+digests							= sha512
+accuracy						= secs:1, millisecs:500, microsecs:100	# [optional]
+clock_precision_digits			= 0										# number of digits after dot. [optional]
+ordering						= yes									# is ordering defined for timestamps?
+																		# [optional, default: no]
+tsa_name						= yes									# must the tsa name be included in the reply?
+																		# [optional, default: no]
+ess_cert_id_chain				= no									# must the ess cert id chain be included?
+																		# [optional, default: no]
+####################################################################
+[ serverauth exts ]
+#extendedKeyUsage = 1.3.6.1.5.5.7.3.1
+# 1.3.6.1.5.5.7.3.1 can also be spelled serverAuth:
+extendedKeyUsage = serverAuth
+
+# see x509v3_config for other extensions
