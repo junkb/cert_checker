@@ -276,5 +276,3 @@ if (( "${send_alert}" ))
 then
     exit 1
 fi
-
-echo "cache control"
