@@ -221,8 +221,6 @@ function check_certificate () {
 			fi
 		done
 
-		echo "array: ${services_to_reload[@]}"
-
 		# clean up ownership/permissions
 		echo ''
 		echo 'cleaning up ownership/permissions...'
