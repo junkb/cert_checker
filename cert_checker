@@ -163,18 +163,18 @@ function check_certificate () {
 		date_time=$(date +%Y.%m.%d-%H.%M.%S)
 		certificate_backup_dir="${local_pki_backup_dir}/${date_time}"
 
-		#mkdir --verbose --parents "${certificate_backup_dir}"
-		#cp --verbose "${certificate_file}" "${certificate_backup_dir}"
+		mkdir --verbose --parents "${certificate_backup_dir}"
+		cp --verbose "${certificate_file}" "${certificate_backup_dir}"
 
 		# perform the actual certificate request
 		echo ''
 		echo 'requesting new certificate...'
-		#acme_tiny-reqcert \
-		#	--ca "${certificate_authority}" \
-		#	--account-key "${letsencrypt_account_key_file}" \
-		#	--csr "${csr_file}" \
-		#	--acme-dir "${acme_dir}" \
-		#	> "${certificate_file}"
+		acme_tiny-reqcert \
+			--ca "${certificate_authority}" \
+			--account-key "${letsencrypt_account_key_file}" \
+			--csr "${csr_file}" \
+			--acme-dir "${acme_dir}" \
+			> "${certificate_file}"
 
 		# validate new certificate
 		echo ''
