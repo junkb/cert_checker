@@ -16,6 +16,10 @@ program_name=$(basename "${0}")
 config_dir="${HOME}/.config/${program_name}"
 config_file="${config_dir}/${program_name}.conf"
 
+# defaults
+certificate_authority='https://acme-v01.api.letsencrypt.org'
+expiration_window_days='30'
+
 source "${config_file}"
 
 # read in the contents of the hosts file [with comments removed]
