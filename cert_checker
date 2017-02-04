@@ -173,7 +173,7 @@ function check_certificate () {
 		# perform the actual certificate request
 		echo ''
 		echo 'requesting new certificate...'
-		acme_tiny-reqcert \
+		acme-tiny-reqcert \
 			--ca "${certificate_authority}" \
 			--account-key "${letsencrypt_account_key_file}" \
 			--csr "${csr_file}" \
