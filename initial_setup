@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export org_name='dipswitch'
+export org_name='example_corp'
 
 export service_username='certfetcher'
 export local_pki_group='local_pki'
