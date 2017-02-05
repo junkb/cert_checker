@@ -62,6 +62,7 @@ chgrp local_pki "${cert_name}"*
 touch "${cert_name}-cert.pem"
 chown certfetcher.local_pki "${cert_name}-cert.pem"
 chmod 'g+r' "${cert_name}"*
+chmod 'o-r' "${cert_name}-key.pem"
 
 # as certfetcher:
 mkdir -p ~/pki/verification_bundles/letsencrypt/dev
