@@ -19,6 +19,7 @@ config_file="${config_dir}/${program_name}.conf"
 # defaults
 certificate_authority='https://acme-v01.api.letsencrypt.org'
 expiration_window_days='30'
+tmp_dir="${HOME}/tmp"
 
 source "${config_file}"
 
@@ -41,7 +42,7 @@ fi
 
 # check certificate for basic structural validity
 function validate_certificate () {
-	certificate_file="${1}"
+	local certificate_file="${1}"
 	echo "validating ${certificate_file}..."
 	openssl x509 -noout -in "${certificate_file}" > /dev/null 2>&1
 	cert_validate_result="${?}"
@@ -170,6 +171,11 @@ function check_certificate () {
 		mkdir --verbose --parents "${certificate_backup_dir}"
 		cp --verbose "${certificate_file}" "${certificate_backup_dir}"
 
+		tmp_certificate_file="${tmp_dir}/${certificate_file_basename}"
+		
+		# create the tmp directory if needed
+		[[ -d "${tmp_dir}" ]] || mkdir "${tmp_dir}"
+		
 		# perform the actual certificate request
 		echo ''
 		echo 'requesting new certificate...'
@@ -178,11 +184,19 @@ function check_certificate () {
 			--account-key "${letsencrypt_account_key_file}" \
 			--csr "${csr_file}" \
 			--acme-dir "${acme_dir}" \
-			> "${certificate_file}"
+			> "${tmp_certificate_file}"
+
+		certificate_request_result="${?}"
+		if (( "${certificate_request_result}" ))
+		then
+			echo 'certificate request failed'
+			echo 'skipping'
+			return 1
+		fi		
 
 		# validate new certificate
 		echo ''
-		validate_certificate "${certificate_file}"
+		validate_certificate "${tmp_certificate_file}"
 		cert_validate_result="${?}"
 		if (( "${cert_validate_result}" ))
 		then
@@ -193,26 +207,37 @@ function check_certificate () {
 		# compare the private key with the certificate to ensure they match
 		echo ''
 		private_key_file="${local_pki_dir}/${hostname}-key.pem"
-		echo "verifying certificate [${certificate_file}] matches private key [${private_key_file}]..."
+		echo "verifying new certificate [${tmp_certificate_file}] matches private key [${private_key_file}]..."
 
 		# get public key from private key
 		private_key_public_key=$(openssl pkey -pubout -in "${private_key_file}")
 
 		# get public key from certificate
-		certificate_public_key=$(openssl x509 -noout -pubkey -in "${certificate_file}")
+		tmp_certificate_public_key=$(openssl x509 -noout -pubkey -in "${tmp_certificate_file}")
 
 		# compare the private key public key and public key public key
-		if [[ "${private_key_public_key}" != "${certificate_public_key}" ]]
+		if [[ "${private_key_public_key}" != "${tmp_certificate_public_key}" ]]
 		then
-			echo "certificate [${certificate_file}] does not match private key [${private_key_file}]"
+			echo "certificate [${tmp_certificate_file}] does not match private key [${private_key_file}]"
 			echo 'something may have gone wrong with the certificate request process'
 			return 1
 		fi
 
 		echo 'success'
 
+		echo ''
+		echo 'moving new certificate into place...'
+		mv --verbose "${tmp_certificate_file}" "${certificate_file}"
+
+		# clean up ownership/permissions
+		echo ''
+		echo 'cleaning up ownership/permissions...'
+		chown --verbose "${file_owner}.${file_group}" "${certificate_file}"	
+		chmod --verbose 0644 "${certificate_file}"
+
 		# mark the associated services for reload
 		# get the list of services which use the certificate from the hosts file
+		echo ''
 		services=($(echo "$hosts" | grep -iF "${hostname}" | awk '{ print $2 }'))
 
 		# add services to array if not already present
@@ -224,12 +249,6 @@ function check_certificate () {
 				services_to_reload["${service}"]+='yes'
 			fi
 		done
-
-		# clean up ownership/permissions
-		echo ''
-		echo 'cleaning up ownership/permissions...'
-		chown --verbose "${file_owner}.${file_group}" "${certificate_file}"	
-		chmod --verbose 0644 "${certificate_file}"
 
 		return 1
 	fi
@@ -273,6 +292,9 @@ then
 		echo ''
 	done
 fi
+
+echo 'cleaning up...'
+rm -rf "${tmp_dir}/"*
 
 if (( "${send_alert}" ))
 then
