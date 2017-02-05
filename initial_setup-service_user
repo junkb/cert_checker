@@ -14,7 +14,7 @@ export sudoers_file='/etc/sudoers.d/90-local'
 
 export acme_dir='/srv/www/global/.well-known/acme-challenge'
 
-# as serice_username:
+# as service_username:
 mkdir --verbose --parent "${home_pki_dir}/verification_bundles/letsencrypt/dev"
 mkdir --verbose --parent "${home_pki_dir}/verification_bundles/letsencrypt/prod"
 
