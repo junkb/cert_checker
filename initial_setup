@@ -28,6 +28,11 @@ chmod --verbose 0440 "${sudoers_file}"
 mkdir --verbose --parent "${local_pki_dir}"
 chmod --verbose 1775 "${local_pki_dir}"
 chgrp --verbose "${local_pki_group}" "${local_pki_dir}"
+
+mkdir --verbose --parent "${local_pki_dir}/old"
+chgrp --verbose "${local_pki_group}" "${local_pki_dir}/old"
+chmod --verbose 'g+w' "${local_pki_dir}/old"
+
 cd "${local_pki_dir}"
 chgrp --verbose "${local_pki_group}" *
 chmod --verbose 'g+r' *
@@ -48,10 +53,6 @@ mkdir --verbose --parent /opt/acme-tiny
 cd /opt/acme_tiny
 curl -vkLO 'https://raw.githubusercontent.com/junkb/acme-tiny/master/acme-tiny-reqcert'
 chmod --verbose '+x' acme*
-
-mkdir --verbose --parent "${local_pki_dir}/old"
-chgrp --verbose "${local_pki_group}" "${local_pki_dir}/old"
-chmod --verbose 'g+w' "${local_pki_dir}/old"
 
 mkdir --verbose --parent "${acme_dir}"
 chown --verbose "${service_username}.${service_username}" "${acme_dir}"
