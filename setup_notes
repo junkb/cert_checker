@@ -11,6 +11,8 @@ usermod -aG httpd_operators certfetcher
 chmod 0440 /etc/sudoers.d/90-local
 
 mkdir -p /etc/pki/local
+chmod 1775 /etc/pki/local
+chgrp local_pki /etc/pki/local
 cd /etc/pki/local
 chgrp local_pki *
 chmod g+r *
