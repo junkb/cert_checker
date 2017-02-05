@@ -6,7 +6,6 @@
 
 output=$(cert_checker 2>&1)
 exit_status="${?}"
-exit_status='1'
 
 if (( "${exit_status}" ))
 	then
