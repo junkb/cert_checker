@@ -23,38 +23,38 @@ usermod -aG "${local_pki_group}" "${service_username}"
 usermod -aG "${httpd_operator_group}" "${service_username}"
 
 printf "%${httpd_operator_group}\t\t\tALL=(root)NOPASSWD:\t\t\t/usr/sbin/service apache2 reload\n" >> "${sudoers_file}"
-chmod 0440 "${sudoers_file}"
+chmod --verbose 0440 "${sudoers_file}"
 
-mkdir -p "${local_pki_dir}"
-chmod 1775 "${local_pki_dir}"
-chgrp "${local_pki_group}" "${local_pki_dir}"
+mkdir --verbose --parent "${local_pki_dir}"
+chmod --verbose 1775 "${local_pki_dir}"
+chgrp --verbose "${local_pki_group}" "${local_pki_dir}"
 cd "${local_pki_dir}"
-chgrp "${local_pki_group}" *
-chmod g+r *
+chgrp --verbose "${local_pki_group}" *
+chmod --verbose 'g+r' *
 
-mkdir -p "${system_pki_dir_base}/intermediate_authorities/letsencrypt"
+mkdir --verbose --parent "${system_pki_dir_base}/intermediate_authorities/letsencrypt"
 cd "${system_pki_dir_base}/intermediate_authorities/letsencrypt"
 curl -kvL 'https://letsencrypt.org/certs/lets-encrypt-x3-cross-signed.pem' -o 'lets_encrypt_authority_x3-dst_root-cert.pem'
 curl -kvL 'https://letsencrypt.org/certs/letsencryptauthorityx3.pem' -o 'lets_encrypt_authority_x3-isrg_root-cert.pem'
 
-mkdir -p "/opt/${org_name}/bin"
+mkdir --verbose --parent "/opt/${org_name}/bin"
 cd "/opt/${org_name}/bin"
 curl -vkLO 'https://raw.githubusercontent.com/junkb/cert_checker/master/cert_checker'
 curl -vkLO 'https://raw.githubusercontent.com/junkb/cert_checker/master/cert_checker-cron'
 curl -vkLO 'https://raw.githubusercontent.com/junkb/cert_checker/master/cert_checker-reload_prosody'
-chmod '+x' cert*
+chmod --verbose '+x' cert*
 
-mkdir -p /opt/acme-tiny
+mkdir --verbose --parent /opt/acme-tiny
 cd /opt/acme_tiny
 curl -vkLO 'https://raw.githubusercontent.com/junkb/acme-tiny/master/acme-tiny-reqcert'
-chmod +x acme*
+chmod --verbose '+x' acme*
 
-mkdir -p "${local_pki_dir}/old"
-chgrp "${local_pki_group}" "${local_pki_dir}/old"
-chmod 'g+w' "${local_pki_dir}/old"
+mkdir --verbose --parent "${local_pki_dir}/old"
+chgrp --verbose "${local_pki_group}" "${local_pki_dir}/old"
+chmod --verbose 'g+w' "${local_pki_dir}/old"
 
-mkdir -p "${acme_dir}"
-chown "${service_username}.${service_username}" "${acme_dir}"
+mkdir --verbose --parent "${acme_dir}"
+chown --verbose "${service_username}.${service_username}" "${acme_dir}"
 
 # httpd config
 # disable reverse proxying for the /.well-known uri.  this allows the letsencrypt
@@ -63,8 +63,8 @@ chown "${service_username}.${service_username}" "${acme_dir}"
 #Alias		/.well-known	/srv/www/global/.well-known
 
 # as certfetcher:
-mkdir -p "${home_pki_dir}/verification_bundles/letsencrypt/dev"
-mkdir -p "${home_pki_dir}/verification_bundles/letsencrypt/prod"
+mkdir --verbose --parent "${home_pki_dir}/verification_bundles/letsencrypt/dev"
+mkdir --verbose --parent "${home_pki_dir}/verification_bundles/letsencrypt/prod"
 
 cd "${home_pki_dir}/verification_bundles/letsencrypt/prod"
 ln -s "${system_pki_dir_base}/intermediate_authorities/letsencrypt/lets_encrypt_authority_x3-dst_root-cert.pem"
@@ -76,14 +76,14 @@ curl -vkL 'https://letsencrypt.org/certs/fakeleintermediatex1.pem' -o fake_le_in
 curl -vkL 'https://letsencrypt.org/certs/fakelerootx1.pem' -o fake_le_root_x1-cert.pem
 for file in *; do ln -s "${file}" $(openssl x509 -noout -hash < "${file}").0; done
 
-mkdir -p ~/.config/cert_checker
+mkdir --verbose --parent ~/.config/cert_checker
 cd ~/.config/cert_checker
 curl -vkLO 'https://raw.githubusercontent.com/junkb/cert_checker/master/.config/cert_checker/cert_checker.conf'
 curl -vkLO 'https://raw.githubusercontent.com/junkb/cert_checker/master/.config/cert_checker/cert_checker.hosts'
 curl -vkLO 'https://raw.githubusercontent.com/junkb/cert_checker/master/.config/cert_checker/cert_checker.services'
 
 cd "${home_pki_dir}"
-chmod 0600 *private*
+chmod --verbose 0600 *private*
 
 crontab -lu certfetcher
 SHELL=/bin/sh
