@@ -1,0 +1,61 @@
+#!/bin/bash
+
+export org_name='example_corp'
+
+export service_username='certfetcher'
+export local_pki_group='local_pki'
+export httpd_operator_group='httpd_operators'
+
+export system_pki_dir_base='/etc/pki'
+export local_pki_dir="${system_pki_dir_base}/local"
+export local_pki_backup_dir="${local_pki_dir}/old"
+export home_pki_dir="${HOME}/pki"
+export sudoers_file='/etc/sudoers.d/90-local'
+
+export acme_dir='/srv/www/global/.well-known/acme-challenge'
+
+# as serice_username:
+mkdir --verbose --parent "${home_pki_dir}/verification_bundles/letsencrypt/dev"
+mkdir --verbose --parent "${home_pki_dir}/verification_bundles/letsencrypt/prod"
+
+cd "${home_pki_dir}/verification_bundles/letsencrypt/prod"
+ln -s "${system_pki_dir_base}/intermediate_authorities/letsencrypt/lets_encrypt_authority_x3-dst_root-cert.pem"
+ln -s "${system_pki_dir_base}/trusted_root_authorities/DST_Root_CA_X3.pem"
+for file in *; do ln -s "${file}" $(openssl x509 -noout -hash < "${file}").0; done
+
+cd "${home_pki_dir}/verification_bundles/letsencrypt/dev"
+curl -vkL 'https://letsencrypt.org/certs/fakeleintermediatex1.pem' -o fake_le_intermediate_x1-cert.pem
+curl -vkL 'https://letsencrypt.org/certs/fakelerootx1.pem' -o fake_le_root_x1-cert.pem
+for file in *; do ln -s "${file}" $(openssl x509 -noout -hash < "${file}").0; done
+
+mkdir --verbose --parent ~/.config/cert_checker
+cd ~/.config/cert_checker
+curl -vkLO 'https://raw.githubusercontent.com/junkb/cert_checker/master/.config/cert_checker/cert_checker.conf'
+curl -vkLO 'https://raw.githubusercontent.com/junkb/cert_checker/master/.config/cert_checker/cert_checker.hosts'
+curl -vkLO 'https://raw.githubusercontent.com/junkb/cert_checker/master/.config/cert_checker/cert_checker.services'
+
+cd "${home_pki_dir}"
+chmod --verbose 0600 *private*
+
+crontab -lu certfetcher
+SHELL=/bin/sh
+"PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/opt/${org_name}/bin:/opt/acme-tiny"
+MAILTO='pki_monitoring@example.com'
+
+# every day, at 04.00
+# update any certificates which are expiring soon
+0	4	*	*	*			cert_checker-cron
+
+unset org_name
+unset service_username
+unset local_pki_group
+unset httpd_operator_group
+unset system_pki_dir_base
+unset local_pki_dir
+unset local_pki_backup_dir
+unset home_pki_dir
+unset acme_dir
+
+exit 0
+
+0
