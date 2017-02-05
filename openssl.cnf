@@ -21,8 +21,8 @@ org_country				= xx
 ## network details
 domain_name				= example.org
 cert_name				= ${domain_name}
-oun					= 'web servers'
-san					= DNS:${domain_name}
+oun						= 'web servers'
+san						= DNS:${domain_name}
 
 ## file names
 root_ca_filename_prefix	= ${org_name_short}_root_ca
