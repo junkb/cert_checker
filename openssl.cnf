@@ -20,9 +20,9 @@ org_country				= xx
 
 ## network details
 domain_name				= example.org
-cn						= ${domain_name}
-oun						= 'web servers'
-san						= DNS:${domain_name}
+cert_name				= ${domain_name}
+oun					= 'web servers'
+san					= DNS:${domain_name}
 
 ## file names
 root_ca_filename_prefix	= ${org_name_short}_root_ca
@@ -42,7 +42,7 @@ policy_url_default		= ${pki_base_url}/policy.php
 ## key generation defaults
 default_md				= sha512		# default message digest [signature algorithm] to use
 default_bits			= 4096			# default size for generated keys
-default_keyfile			= ${ENV::cn}-key.pem
+default_keyfile			= ${ENV::cert_name}-key.pem
 encrypt_key				= no
 
 ## distinguished name structure and prompt value defaults
@@ -245,12 +245,12 @@ string_mask				= utf8only
 ######################################################
 [ req_dn_short-no_prompt ]
 # distinguished name values used when prompt = no
-commonName						= ${ENV::cn}
+commonName						= ${ENV::cert_name}
 
 ######################################################
 [ req_dn-no_prompt ]
 # distinguished name values used when prompt = no
-commonName						= ${ENV::cn}
+commonName						= ${ENV::cert_name}
 organizationalUnitName			= ${ENV::oun}
 emailAddress					= ${email_default}
 organizationName				= ${organization_default}
@@ -262,7 +262,7 @@ countryName						= ${country_default}
 [ req_dn-prompt ]
 # distinguished name prompts/values used when prompt = yes
 commonName						= common name [hostname]
-commonName_default				= ${ENV::cn}
+commonName_default				= ${ENV::cert_name}
 commonName_max					= 64
 organizationalUnitName			= organizational unit name [eg, host/service category]
 #organizationalUnitName_default	= ${ENV::oun}
