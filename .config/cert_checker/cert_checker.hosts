@@ -1,4 +1,4 @@
-# hostname						service_name
-foo.example.com    		apache
-bar.example.com 			apache
-im.example.com        prosody
+# hostname				      service_name
+www.example.com					apache
+foo.example.com					apache
+im.example.com					prosody
