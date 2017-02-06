@@ -4,17 +4,14 @@ export org_name='example_corp'
 
 export service_username='certfetcher'
 export local_pki_group='local_pki'
-export httpd_operator_group='httpd_operators'
 
 export system_pki_dir_base='/etc/pki'
 export local_pki_dir="${system_pki_dir_base}/local"
 export local_pki_backup_dir="${local_pki_dir}/old"
 export home_pki_dir="${HOME}/pki"
-export sudoers_file='/etc/sudoers.d/90-local'
 
 export acme_dir='/srv/www/global/.well-known/acme-challenge'
 
-# as service_username:
 mkdir --verbose --parent "${home_pki_dir}/verification_bundles/letsencrypt/dev"
 mkdir --verbose --parent "${home_pki_dir}/verification_bundles/letsencrypt/prod"
 
@@ -42,15 +39,6 @@ curl -vkLO 'https://raw.githubusercontent.com/junkb/cert_checker/master/.config/
 cd "${home_pki_dir}"
 chmod --verbose 0600 *private*
 
-crontab -lu certfetcher
-SHELL=/bin/sh
-"PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/opt/${org_name}/bin:/opt/acme-tiny"
-MAILTO='pki_monitoring@example.com'
-
-# every day, at 04.00
-# update any certificates which are expiring soon
-0	4	*	*	*			cert_checker-cron
-
 unset org_name
 unset service_username
 unset local_pki_group
@@ -62,5 +50,3 @@ unset home_pki_dir
 unset acme_dir
 
 exit 0
-
-0
