@@ -14,11 +14,8 @@ export sudoers_file='/etc/sudoers.d/90-local'
 
 export acme_dir='/srv/www/global/.well-known/acme-challenge'
 
-# as root:
-useradd --system --user-group --shell /bin/bash --create-home --home "/var/lib/${service_username}" --comment 'pki certificate fetcher' "${service_username}"
 groupadd "${local_pki_group}"
 groupadd "${httpd_operator_group}"
-
 usermod -aG "${local_pki_group}" "${service_username}"
 usermod -aG "${httpd_operator_group}" "${service_username}"
 
