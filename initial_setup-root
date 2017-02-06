@@ -22,7 +22,7 @@ groupadd "${httpd_operator_group}"
 usermod -aG "${local_pki_group}" "${service_username}"
 usermod -aG "${httpd_operator_group}" "${service_username}"
 
-printf "${httpd_operator_group}\t\t\tALL=(root)NOPASSWD:\t\t\t/usr/sbin/service apache2 reload\n" >> "${sudoers_file}"
+printf "%${httpd_operator_group}\t\t\tALL=(root)NOPASSWD:\t\t\t/usr/sbin/service apache2 reload\n" >> "${sudoers_file}"
 chmod --verbose 0440 "${sudoers_file}"
 
 mkdir --verbose --parent "${local_pki_dir}"
