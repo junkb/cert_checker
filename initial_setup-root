@@ -50,7 +50,7 @@ curl -vkLO 'https://raw.githubusercontent.com/junkb/cert_checker/master/cert_che
 chmod --verbose '+x' cert*
 
 mkdir --verbose --parent /opt/acme-tiny
-cd /opt/acme_tiny
+cd /opt/acme-tiny
 curl -vkLO 'https://raw.githubusercontent.com/junkb/acme-tiny/master/acme-tiny-reqcert'
 chmod --verbose '+x' acme*
 
