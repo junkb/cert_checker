@@ -1,0 +1,7 @@
+SHELL='/bin/sh'
+PATH='/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/opt/example_corp/bin:/opt/acme-tiny'
+MAILTO='pki_monitoring@example.com'
+
+# every day, at 04.00
+# update any certificates which are expiring soon
+0	4	*	*	*			cert_checker-cron
