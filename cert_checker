@@ -130,7 +130,7 @@ function check_certificate () {
 
 	if (( "${certificate_expiring}" ))
 	then
-		echo "certificate due for renewal [expires ${certificate_end_date}] - renewing..."
+		echo "expiration is within ${expiration_window_days} days [expires ${certificate_end_date}] - renewing..."
 
 		csr_file="${local_pki_dir}/${hostname}-csr.pem"
 
@@ -253,7 +253,7 @@ function check_certificate () {
 		return 1
 	fi
 
-	echo "certificate expiration is more than ${expiration_window_days} days away [expires ${certificate_end_date}] - skipping"
+	echo "expiration is beyond ${expiration_window_days} days [expires ${certificate_end_date}] - skipping"
 	return 0
 }
 
