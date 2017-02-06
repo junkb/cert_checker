@@ -1,16 +1,7 @@
 #!/bin/bash
 
-export org_name='example_corp'
-
-export service_username='certfetcher'
-export local_pki_group='local_pki'
-
 export system_pki_dir_base='/etc/pki'
-export local_pki_dir="${system_pki_dir_base}/local"
-export local_pki_backup_dir="${local_pki_dir}/old"
 export home_pki_dir="${HOME}/pki"
-
-export acme_dir='/srv/www/global/.well-known/acme-challenge'
 
 mkdir --verbose --parent "${home_pki_dir}/verification_bundles/letsencrypt/dev"
 mkdir --verbose --parent "${home_pki_dir}/verification_bundles/letsencrypt/prod"
@@ -39,14 +30,7 @@ curl -vkLO 'https://raw.githubusercontent.com/junkb/cert_checker/master/.config/
 cd "${home_pki_dir}"
 chmod --verbose 0600 *private*
 
-unset org_name
-unset service_username
-unset local_pki_group
-unset httpd_operator_group
 unset system_pki_dir_base
-unset local_pki_dir
-unset local_pki_backup_dir
 unset home_pki_dir
-unset acme_dir
 
 exit 0
