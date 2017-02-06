@@ -20,7 +20,12 @@ mkdir --verbose --parent "${home_pki_dir}/verification_bundles/letsencrypt/prod"
 
 cd "${home_pki_dir}/verification_bundles/letsencrypt/prod"
 ln -s "${system_pki_dir_base}/intermediate_authorities/letsencrypt/lets_encrypt_authority_x3-dst_root-cert.pem"
-ln -s "${system_pki_dir_base}/trusted_root_authorities/DST_Root_CA_X3.pem"
+if [[ -f "${system_pki_dir_base}/trusted_root_authorities/DST_Root_CA_X3.pem" ]]
+	then
+	ln -s "${system_pki_dir_base}/trusted_root_authorities/DST_Root_CA_X3.pem"
+	else
+	curl -kvLO 'https://raw.githubusercontent.com/junkb/cert_checker/master/DST_Root_CA_X3.pem'
+fi
 for file in *; do ln -s "${file}" $(openssl x509 -noout -hash < "${file}").0; done
 
 cd "${home_pki_dir}/verification_bundles/letsencrypt/dev"
