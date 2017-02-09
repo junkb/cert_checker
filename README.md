@@ -1,3 +1,8 @@
+depends on:
+bash
+python
+acme-tiny [https://github.com/junkb/acme-tiny]
+
 small set of utilities to check certificate expiration and, if necesary, request a new certificate
 
 expects certain conventions as set forth in the comments
