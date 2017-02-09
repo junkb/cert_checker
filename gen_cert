@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export org_name='dipswitch'
+export org_name='example_corp'
 export cert_name='www.example.com'
 
 export service_username='certfetcher'
