@@ -54,12 +54,6 @@ chmod --verbose '+x' acme*
 mkdir --verbose --parent "${acme_dir}"
 chown --verbose "${service_username}.${service_username}" "${acme_dir}"
 
-# httpd config
-# disable reverse proxying for the /.well-known uri.  this allows the letsencrypt
-# mechanism to work properly
-#ProxyPass	/.well-known	!
-#Alias		/.well-known	/srv/www/global/.well-known
-
 unset org_name
 unset service_username
 unset local_pki_group
