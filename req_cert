@@ -1,0 +1,23 @@
+export org_name='example_corp'
+export cert_name='www.example.com'
+export acme_dir='/srv/www/global/.well-known/acme-challenge'
+
+export home_pki_dir="${HOME}/pki"
+export system_pki_dir_base='/etc/pki'
+export local_pki_dir="${system_pki_dir_base}/local"
+
+acme-tiny-reqcert \
+  --ca 'https://acme-v01.api.letsencrypt.org' \
+  --account-key "${home_pki_dir}/letsencrypt_account-${org_name}-key-rsa-private.pem" \
+  --csr "/etc/pki/local/${cert_name}-csr.pem" \
+  --acme-dir "${acme_dir}" \
+  > "${local_pki_dir}/${cert_name}-cert.pem"
+
+unset org_name
+unset cert_name
+unset acme_dir
+unset home_pki_dir
+unset system_pki_dir_base
+unset local_pki_dir
+
+exit 0
