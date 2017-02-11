@@ -1,4 +1,0 @@
-# disable reverse proxying for the /.well-known uri.  this allows the letsencrypt
-# mechanism to work properly
-ProxyPass	/.well-known	!
-Alias		/.well-known	/srv/www/global/.well-known
