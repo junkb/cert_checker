@@ -10,7 +10,8 @@ expects certain conventions as set forth in the comments
 1. create a service/system account:
 
 ```bash
-useradd --system --user-group --shell /bin/bash --create-home --home /var/lib/config --comment 'configuration management' config
+export service_username='certfetcher'
+useradd --system --user-group --shell /bin/bash --create-home --home "/var/lib/${service_username}" --comment 'pki certificate fetcher' "${service_username}"
 ```
 
 2. make the necessary sudo adjustments to allow the service acount to reload/restart the appropriate services
