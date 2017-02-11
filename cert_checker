@@ -20,6 +20,7 @@ config_file="${config_dir}/${program_name}.conf"
 certificate_authority='https://acme-v01.api.letsencrypt.org'
 expiration_window_days='30'
 tmp_dir="${HOME}/tmp"
+acme_dir='/srv/www/global/.well-known/acme-challenge'
 always_send_alert='0'
 
 source "${config_file}"
