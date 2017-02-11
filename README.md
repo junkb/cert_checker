@@ -7,9 +7,13 @@ small set of utilities to check certificate expiration and, if necesary, request
 
 expects certain conventions as set forth in the comments
 
-step 1: create a service/system account
+1. create a service/system account:
 
-step 2: make the necessary sudo adjustments to allow the service acount to reload/restart the appropriate services
+```bash
+useradd --system --user-group --shell /bin/bash --create-home --home /var/lib/config --comment 'configuration management' config
+```
+
+2. make the necessary sudo adjustments to allow the service acount to reload/restart the appropriate services
 
 follow the process/steps outlined in initial_setup/initial_setup-root for environment prep as root
 
