@@ -1,3 +1,6 @@
+# the hostname field needs to match the subject cn value of the certificate, and the filename convention of the certificate, key and csr.
+# the service name field needs to match an entry in the certchecker services file.
+
 # hostname				      service_name
 www.example.com					apache
 foo.example.com					apache
