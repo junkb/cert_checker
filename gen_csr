@@ -10,8 +10,8 @@ export local_pki_dir="${system_pki_dir_base}/local"
 
 date_time=$(date +%Y.%m.%d-%H.%M.%S)
 backup_dir="${local_pki_dir}/old/${date_time}"
-mkdir --verbose --parent "${backup_dir}"
-cp --verbose "${cert_name}"* "${backup_dir}"
+mkdir -v -p "${backup_dir}"
+cp -v -p "${cert_name}"* "${backup_dir}"
 
 # initial key/csr creation
 export dn_section='req_dn_short-no_prompt'; \
@@ -22,8 +22,8 @@ openssl req \
 chgrp local_pki "${cert_name}"*
 touch "${cert_name}-cert.pem"
 chown "${service_username}.${local_pki_group}" "${cert_name}-cert.pem"
-chmod 'g+r' "${cert_name}"*
-chmod 'o-r' "${cert_name}-key.pem"
+chmod -v 'g+r' "${cert_name}"*
+chmod -v 'o-r' "${cert_name}-key.pem"
 
 unset cert_name
 unset service_username
