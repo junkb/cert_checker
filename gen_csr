@@ -21,7 +21,7 @@ openssl req \
 
 chgrp local_pki "${cert_name}"*
 touch "${cert_name}-cert.pem"
-chown "${service_username}.${local_pki_group}" "${cert_name}-cert.pem"
+chown "${service_username}:${local_pki_group}" "${cert_name}-cert.pem"
 chmod -v 'g+r' "${cert_name}"*
 chmod -v 'o-r' "${cert_name}-key.pem"
 
