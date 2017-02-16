@@ -12,7 +12,8 @@ if [[ -f "${system_pki_dir_base}/trusted_root_authorities/DST_Root_CA_X3.pem" ]]
 	then
 	ln -s "${system_pki_dir_base}/trusted_root_authorities/DST_Root_CA_X3.pem"
 	else
-	curl -kvLO 'https://raw.githubusercontent.com/junkb/cert_checker/master/initial_Setup/DST_Root_CA_X3.pem'
+	curl -kvLO 'https://raw.githubusercontent.com/junkb/cert_checker/master/initial_setup/DST_Root_CA_X3.pem'
+
 fi
 for file in *; do ln -s "${file}" $(openssl x509 -noout -hash < "${file}").0; done
 
