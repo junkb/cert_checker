@@ -122,7 +122,7 @@ function check_certificate () {
 	certificate_end_date=$(openssl x509 -in "${certificate_file}" -noout -enddate)
 	certificate_end_date=$(echo "${certificate_end_date}" | awk -F '=' '{ print $2 }')
 	certificate_end_date=$(date "--date=${certificate_end_date}" '+%Y.%m.%d %H.%M %Z' | tr '[[:upper:]]' '[[:lower:]]')
-	certificate_end_date=$(date -jf '%b %d %T %Y %Z' "${certificate_end_date}" '+%Y.%m.%d %H.%M %Z' | tr '[[:upper:]]' '[[:lower:]]')
+	#certificate_end_date=$(date -jf '%b %d %T %Y %Z' "${certificate_end_date}" '+%Y.%m.%d %H.%M %Z' | tr '[[:upper:]]' '[[:lower:]]')
 
 	# check to see if the certificate expiration date is within the specified window
 	echo ''
