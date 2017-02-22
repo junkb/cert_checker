@@ -171,8 +171,8 @@ function check_certificate () {
 		date_time=$(date '+%Y.%m.%d-%H.%M.%S')
 		certificate_backup_dir="${local_pki_backup_dir}/${date_time}"
 
-		mkdir --verbose --parents "${certificate_backup_dir}"
-		cp --verbose "${certificate_file}" "${certificate_backup_dir}"
+		mkdir -vp "${certificate_backup_dir}"
+		cp -v "${certificate_file}" "${certificate_backup_dir}"
 
 		tmp_certificate_file="${tmp_dir}/${certificate_file_basename}"
 		
@@ -230,13 +230,13 @@ function check_certificate () {
 
 		echo ''
 		echo 'moving new certificate into place...'
-		mv --verbose "${tmp_certificate_file}" "${certificate_file}"
+		mv -v "${tmp_certificate_file}" "${certificate_file}"
 
 		# clean up ownership/permissions
 		echo ''
 		echo 'cleaning up ownership/permissions...'
-		chown --verbose "${file_owner}.${file_group}" "${certificate_file}"	
-		chmod --verbose 0644 "${certificate_file}"
+		chown -v "${file_owner}.${file_group}" "${certificate_file}"	
+		chmod -v 0644 "${certificate_file}"
 
 		# mark the associated services for reload
 		# get the list of services which use the certificate from the hosts file
