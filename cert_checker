@@ -218,7 +218,7 @@ function check_certificate () {
         # older versions of openssl do not have the pkey subcommand.  the rsa subcommand
         # can serve as a partial substitute, but this of course works only with rsa keys.
         # other key types [for example, ec keys], cannot be used with this command
-        #private_key_public_key=$(openssl rsa -pubout -in "${private_key_file}")
+        #private_key_public_key=$(openssl rsa -pubout -in "${private_key_file}" 2> /dev/null)
 
 		# get public key from certificate
 		tmp_certificate_public_key=$(openssl x509 -noout -pubkey -in "${tmp_certificate_file}")
