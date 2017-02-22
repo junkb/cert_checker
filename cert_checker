@@ -240,7 +240,7 @@ function check_certificate () {
 		# clean up ownership/permissions
 		echo ''
 		echo 'cleaning up ownership/permissions...'
-		chown -v "${file_owner}.${file_group}" "${certificate_file}"	
+		chown -v "${file_owner}:${file_group}" "${certificate_file}"	
 		chmod -v 0644 "${certificate_file}"
 
 		# mark the associated services for reload
