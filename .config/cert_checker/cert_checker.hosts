@@ -3,6 +3,6 @@
 # the service name field needs to match an entry in the certchecker services file.
 
 # hostname				      service_name
-www.example.com					apache
-foo.example.com					apache
+www.example.com					httpd
+foo.example.com					httpd
 im.example.com					prosody
