@@ -10,8 +10,7 @@ cert_checker_hosts_file="${cert_checker_config_dir}/cert_checker.hosts"
 
 source "${cert_checker_config_file}"
 
-# get list of hostnames used with the service
-hostnames=($(grep -F "${service_name}" "${cert_checker_hosts_file}" | awk '{ print $1 }'))
+hostnames=($(egrep -v '(^[[:space:]]*#|^[[:space:]]*$)' "${cert_checker_hosts_file}" | grep -F "${service_name}" | awk '{ print $1 }'))
 
 for hostname in "${hostnames[@]}"
 do
