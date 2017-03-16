@@ -4,7 +4,8 @@ export org_name='example_corp'
 
 export service_username='certfetcher'
 export local_pki_group='local_pki'
-export httpd_operator_group='httpd_operators'
+export service_operator_group='postfix_operators'
+export service_reload_command='/usr/sbin/service postfix reload'
 
 export system_pki_dir_base='/etc/pki'
 export local_pki_dir="${system_pki_dir_base}/local"
@@ -15,11 +16,11 @@ export sudoers_file='/etc/sudoers.d/90-local'
 export acme_dir='/srv/www/global/.well-known/acme-challenge'
 
 groupadd "${local_pki_group}"
-groupadd "${httpd_operator_group}"
+groupadd "${service_operator_group}"
 usermod -aG "${local_pki_group}" "${service_username}"
-usermod -aG "${httpd_operator_group}" "${service_username}"
+usermod -aG "${service_operator_group}" "${service_username}"
 
-printf "%%${httpd_operator_group}\t\t\tALL=(root)NOPASSWD:\t\t\t/usr/sbin/service apache2 reload\n" >> "${sudoers_file}"
+printf "%%${service_operator_group}\t\t\tALL=(root)NOPASSWD:\t\t\t${service_reload_command}\n" >> "${sudoers_file}"
 chmod --verbose 0440 "${sudoers_file}"
 
 mkdir --verbose --parent "${local_pki_dir}"
