@@ -1,0 +1,56 @@
+#!/bin/bash
+
+service_name='postfix_remote'
+service_pki_dir="/etc/pki/local"
+
+remote_hosts=(
+	'msa1'
+	'msa2'
+)
+
+config_dir="${HOME}/.config"
+cert_checker_config_dir="${config_dir}/cert_checker"
+cert_checker_config_file="${cert_checker_config_dir}/cert_checker.conf"
+cert_checker_hosts_file="${cert_checker_config_dir}/cert_checker.hosts"
+
+source "${cert_checker_config_file}"
+
+# get list of hostnames used with the service
+hostnames=($(grep -F "${service_name}" "${cert_checker_hosts_file}" | awk '{ print $1 }'))
+
+for hostname in "${hostnames[@]}"
+do
+	echo "creating certificate chain file for: ${hostname}"
+
+	# postfix requires all certificates in a single file [e.g. a certificate chain file].
+	# the server cert must be first [topmost] in the file, followed by each superior
+	# certificate required to form the necessary chain to the root certificate
+	server_certificate_file="${local_pki_dir}/${hostname}-cert.pem"
+	certificate_chain_file="${service_pki_dir}/${hostname}-cert-chain.pem"
+
+	cat \
+		"${server_certificate_file}" \
+		"${intermediate_certificate_file}" \
+		> "${certificate_chain_file}"
+
+done
+
+# clean up ownership/permissions
+echo 'cleaning up permissions...'
+chown --verbose 'certfetcher:local_pki' "${certificate_chain_file}"
+chmod --verbose 0664 "${certificate_chain_file}"
+
+for remote_host in "${remote_hosts[@]}"
+do
+	echo ''
+
+	# transfer the certificate file
+	echo "transferring certificate to ${remote_host}..."
+	scp "${certificate_chain_file}" "${remote_host}:${certificate_chain_file}"
+
+	# restart the service
+	echo "reloading ${service_name} on ${remote_host}..."
+	ssh "${remote_host}" sudo service postfix reload
+done
+
+exit 0
