@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# this utility does miscellaneous housekeeping/cleanup tasks
+# related to certificate management/renewal processes
+
+old_certificate_directory='/etc/pki/local/old'
+
+find "${old_certificate_directory}/" -mtime '+365' -delete -print
+
+exit 0
