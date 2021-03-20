@@ -17,7 +17,7 @@ config_dir="${HOME}/.config/${program_name}"
 config_file="${config_dir}/${program_name}.conf"
 
 # defaults
-certificate_authority='https://acme-v01.api.letsencrypt.org'
+acme_directory_url='https://acme-v02.api.letsencrypt.org/directory'
 expiration_window_days='30'
 tmp_dir="${HOME}/tmp"
 acme_dir='/srv/www/global/.well-known/acme-challenge'
@@ -26,18 +26,18 @@ always_send_alert='0'
 source "${config_file}"
 
 # read in the contents of the hosts file [with comments removed]
-hosts=$(egrep -v '(^[[:space:]]*#|^[[:space:]]*$)' "${hosts_file}")
+hosts=$(egrep --invert-match '(^[[:space:]]*#|^[[:space:]]*$)' "${hosts_file}")
 
-hostnames=($(echo "${hosts}" | awk '{ print $1 }' | sort -u))
+hostnames=($(echo "${hosts}" | awk '{ print $1 }' | sort --unique))
 
 send_alert='0'
 unset services_to_reload
 declare -A services_to_reload
 
 ## check for read access to account key file
-if [[ ! -r "${letsencrypt_account_key_file}" ]]
+if [[ ! -r "${lets_encrypt_account_key_file}" ]]
 then
-	echo "${letsencrypt_account_key_file} is not readable [or does not exist]"
+	echo "${lets_encrypt_account_key_file} is not readable [or does not exist]"
 	echo 'exiting'
 	exit 1
 fi
@@ -53,11 +53,11 @@ function validate_certificate () {
 		echo "failed - does not appear to be a valid certificate"
 		return 1
 	fi
-	
+
 	# get the subject field from the certificate
 	certificate_subject=$(openssl x509 -in "${certificate_file}" -noout -subject -nameopt rfc2253)
-	certificate_subject=$(echo "${certificate_subject}" | awk -F 'subject= ' '{ print $2 }' | tr '[[:upper:]]' '[[:lower:]]')
-	
+	certificate_subject=$(echo "${certificate_subject}" | awk --field-separator 'subject=' '{ print $2 }' | tr '[[:upper:]]' '[[:lower:]]')
+
 	echo "success [subject: ${certificate_subject}]"
 }
 
@@ -82,30 +82,27 @@ function check_certificate () {
 	fi
 
 	# check to see if the certificate was issued by lets encrypt.
-	# older versions of ssl don't work right, so the result code can't
-	# be used and the output must be parsed
+	echo ''
 	echo 'verifying issuer...'
 
 	# get issuer
-	certificate_issuer=$(openssl x509 -noout -issuer -in "${certificate_file}" -nameopt rfc2253)
-	certificate_issuer=$(echo "${certificate_issuer}" | awk -F 'issuer= ' '{ print $2 }' | tr '[[:upper:]]' '[[:lower:]]')
+	certificate_issuer=$(openssl x509 -in "${certificate_file}" -noout -issuer -nameopt rfc2253)
+	certificate_issuer=$(echo "${certificate_issuer}" | awk --field-separator 'issuer=' '{ print $2 }' | tr '[[:upper:]]' '[[:lower:]]')
 
 	certificate_file_basename=$(basename "${certificate_file}")
 
 	# verify the certificate against the production lets encrypt certificates
-	verify_output_prod=$(openssl verify -CApath "${verification_bundle_dir_prod}" "${certificate_file}")
-	echo "${verify_output_prod}" | grep -iF "${certificate_file_basename}" | awk '$2 == "OK" { print $2}' | grep -F 'OK' > /dev/null 2>&1
+	openssl verify -CApath "${verification_bundle_dir_prod}" "${certificate_file}" > /dev/null 2>&1
 	verify_result_prod="${?}"
 
 	# verify the certificate against the development [e.g. "staging"] lets encrypt certificates
-	verify_output_dev=$(openssl verify -CApath "${verification_bundle_dir_dev}" "${certificate_file}")
-	echo "${verify_output_dev}" | grep -iF "${certificate_file_basename}" | awk '$2 == "OK" { print $2}' | grep -F 'OK' > /dev/null 2>&1
+	openssl verify -CApath "${verification_bundle_dir_dev}" "${certificate_file}" > /dev/null 2>&1
 	verify_result_dev="${?}"
 
 	if (( "${verify_result_prod}" && "${verify_result_dev}" ))
 	then
 		echo "skipping [issuer: ${certificate_issuer}]"
-		return 0
+		return 1
 	fi
 
 	echo "success [issuer: ${certificate_issuer}]"
@@ -120,9 +117,8 @@ function check_certificate () {
 
 	# get the expiration date field from the certificate
 	certificate_end_date=$(openssl x509 -in "${certificate_file}" -noout -enddate)
-	certificate_end_date=$(echo "${certificate_end_date}" | awk -F '=' '{ print $2 }')
-	certificate_end_date=$(date "--date=${certificate_end_date}" '+%Y.%m.%d %H.%M %Z' | tr '[[:upper:]]' '[[:lower:]]')
-	#certificate_end_date=$(date -jf '%b %d %T %Y %Z' "${certificate_end_date}" '+%Y.%m.%d %H.%M %Z' | tr '[[:upper:]]' '[[:lower:]]')
+	certificate_end_date=$(echo "${certificate_end_date}" | awk --field-separator '=' '{ print $2 }')
+	certificate_end_date=$(date --utc "--date=${certificate_end_date}" '+%Y.%m.%d %H.%M %Z' | tr '[[:upper:]]' '[[:lower:]]')
 
 	# check to see if the certificate expiration date is within the specified window
 	echo ''
@@ -160,7 +156,7 @@ function check_certificate () {
 
 		# get the subject field from the csr
 		csr_subject=$(openssl req -batch -noout -subject -nameopt rfc2253 -in "${csr_file}")
-		csr_subject=$(echo "${csr_subject}" | awk -F 'subject=' '{ print $2 }' | tr '[[:upper:]]' '[[:lower:]]')
+		csr_subject=$(echo "${csr_subject}" | awk --field-separator 'subject=' '{ print $2 }' | tr '[[:upper:]]' '[[:lower:]]')
 
 		echo "success [subject: ${csr_subject}]"
 
@@ -168,23 +164,23 @@ function check_certificate () {
 		echo ''
 		echo 'backing up existing certificate...'
 
-		date_time=$(date '+%Y.%m.%d-%H.%M.%S')
+		date_time=$(date +%Y.%m.%d-%H.%M.%S)
 		certificate_backup_dir="${local_pki_backup_dir}/${date_time}"
 
-		mkdir -vp "${certificate_backup_dir}"
-		cp -v "${certificate_file}" "${certificate_backup_dir}"
+		mkdir --verbose --parents "${certificate_backup_dir}"
+		cp --verbose "${certificate_file}" "${certificate_backup_dir}"
 
 		tmp_certificate_file="${tmp_dir}/${certificate_file_basename}"
-		
+
 		# create the tmp directory if needed
 		[[ -d "${tmp_dir}" ]] || mkdir "${tmp_dir}"
-		
+
 		# perform the actual certificate request
 		echo ''
 		echo 'requesting new certificate...'
 		acme-tiny-reqcert \
-			--ca "${certificate_authority}" \
-			--account-key "${letsencrypt_account_key_file}" \
+			--directory-url "${acme_directory_url}" \
+			--account-key "${lets_encrypt_account_key_file}" \
 			--csr "${csr_file}" \
 			--acme-dir "${acme_dir}" \
 			> "${tmp_certificate_file}"
@@ -195,7 +191,7 @@ function check_certificate () {
 			echo 'certificate request failed'
 			echo 'skipping'
 			return 1
-		fi		
+		fi
 
 		# validate new certificate
 		echo ''
@@ -215,11 +211,6 @@ function check_certificate () {
 		# get public key from private key
 		private_key_public_key=$(openssl pkey -pubout -in "${private_key_file}")
 
-        # older versions of openssl do not have the pkey subcommand.  the rsa subcommand
-        # can serve as a partial substitute, but this of course works only with rsa keys.
-        # other key types [for example, ec keys], cannot be used with this command
-        #private_key_public_key=$(openssl rsa -pubout -in "${private_key_file}" 2> /dev/null)
-
 		# get public key from certificate
 		tmp_certificate_public_key=$(openssl x509 -noout -pubkey -in "${tmp_certificate_file}")
 
@@ -235,18 +226,18 @@ function check_certificate () {
 
 		echo ''
 		echo 'moving new certificate into place...'
-		mv -v "${tmp_certificate_file}" "${certificate_file}"
+		mv --verbose "${tmp_certificate_file}" "${certificate_file}"
 
 		# clean up ownership/permissions
 		echo ''
 		echo 'cleaning up ownership/permissions...'
-		chown -v "${file_owner}:${file_group}" "${certificate_file}"	
-		chmod -v 0644 "${certificate_file}"
+		chown --verbose "${file_owner}.${file_group}" "${certificate_file}"
+		chmod --verbose 0644 "${certificate_file}"
 
 		# mark the associated services for reload
 		# get the list of services which use the certificate from the hosts file
 		echo ''
-		services=($(echo "$hosts" | grep -iF "${hostname}" | awk '{ print $2 }'))
+		services=($(echo "$hosts" | grep --ignore-case --fixed-strings "${hostname}" | awk '{ print $2 }'))
 
 		# add services to array if not already present
 		for service in "${services[@]}"
@@ -289,12 +280,12 @@ then
 	echo 'reloading services...'
 
 	# read in the contents of the services file
-	services=$(egrep -v '(^[[:space:]]*#|^[[:space:]]*$)' "${services_file}")
+	services=$(egrep --invert-match '(^[[:space:]]*#|^[[:space:]]*$)' "${services_file}")
 
 	for service in "${!services_to_reload[@]}"
 	do
 		# get service reload command from the hosts file
-		service_reload_command=$(echo "${services}" | grep -iF "${service}" | awk '{print substr($0, index($0, $2))}')
+		service_reload_command=$(echo "${services}" | grep --ignore-case --fixed-strings "${service}" | awk '{print substr($0, index($0, $2))}')
 		echo "${service} - running reload command [${service_reload_command}]..."
 		${service_reload_command}
 		echo ''
@@ -302,7 +293,7 @@ then
 fi
 
 echo 'cleaning up...'
-rm -rf "${tmp_dir}/"*
+rm --verbose --recursive --force "${tmp_dir}/"*
 
 if (( "${always_send_alert}" ))
 then
