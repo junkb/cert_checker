@@ -1,5 +1,6 @@
 depends on:
 - bash
+- openssl
 - python
 - acme-tiny [https://github.com/junkb/acme-tiny]
 
